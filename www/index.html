@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miniscript Descriptor Analyzer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔑 Miniscript Descriptor Analyzer</h1>
+            <p class="subtitle">Parse, analyze, and derive keys from Bitcoin miniscript descriptors</p>
+        </header>
+
+        <section class="input-section">
+            <div class="form-group">
+                <label for="descriptor">Descriptor</label>
+                <textarea id="descriptor" rows="6" placeholder="Paste your descriptor here, e.g. wsh(andor(multi(2,...),or_d(pk(...),and_v(v:pk(...),after(...))),and_v(v:pkh(...),after(...))))#checksum"></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="index">Derivation Index</label>
+                    <input type="number" id="index" value="0" min="0" max="2147483647">
+                </div>
+                <div class="form-group">
+                    <label for="network">Network</label>
+                    <select id="network">
+                        <option value="bitcoin" selected>Mainnet</option>
+                        <option value="testnet">Testnet</option>
+                        <option value="signet">Signet</option>
+                        <option value="regtest">Regtest</option>
+                    </select>
+                </div>
+                <div class="form-group btn-group">
+                    <button id="analyze-btn" onclick="analyzeDescriptor()">Analyze</button>
+                </div>
+            </div>
+        </section>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>Analyzing descriptor...</span>
+        </div>
+
+        <div id="error-section" class="error-section hidden">
+            <div class="error-badge">✗ Error</div>
+            <pre id="error-message"></pre>
+        </div>
+
+        <div id="results" class="hidden">
+            <!-- Checksum -->
+            <section class="result-card" id="checksum-section">
+                <h2>✓ Validation</h2>
+                <div id="checksum-result"></div>
+            </section>
+
+            <!-- Descriptor Type -->
+            <section class="result-card" id="type-section">
+                <h2>📋 Descriptor Info</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Type</span>
+                        <span class="info-value" id="desc-type"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Policy -->
+            <section class="result-card" id="policy-section">
+                <h2>📜 Spending Policy</h2>
+                <pre id="policy-content" class="code-block"></pre>
+            </section>
+
+            <!-- Timelocks -->
+            <section class="result-card hidden" id="timelock-section">
+                <h2>⏰ Timelocks</h2>
+                <div id="timelock-list"></div>
+            </section>
+
+            <!-- Path Results -->
+            <div id="path-results"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Powered by <a href="https://github.com/rust-bitcoin/rust-miniscript" target="_blank">rust-miniscript</a> compiled to WebAssembly. All computation runs locally in your browser.</p>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>

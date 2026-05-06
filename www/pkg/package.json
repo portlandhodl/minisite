@@ -1,0 +1,16 @@
+{
+  "name": "miniscript-analyzer",
+  "type": "module",
+  "description": "WASM-powered Bitcoin miniscript descriptor analyzer",
+  "version": "0.1.0",
+  "files": [
+    "miniscript_analyzer_bg.wasm",
+    "miniscript_analyzer.js",
+    "miniscript_analyzer.d.ts"
+  ],
+  "main": "miniscript_analyzer.js",
+  "types": "miniscript_analyzer.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
