@@ -20,8 +20,9 @@ async function initWasm() {
 // Initialize on load
 initWasm();
 
-// Make analyzeDescriptor available globally for the onclick handler
+// Make functions available globally for the onclick handlers
 window.analyzeDescriptor = analyzeDescriptor;
+window.shareDescriptor = shareDescriptor;
 
 /**
  * Read descriptor, index, and network from URL parameters.
@@ -247,6 +248,46 @@ function escapeHtml(str) {
     const div = document.createElement('div');
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
+}
+
+/**
+ * Build a shareable URL with the current descriptor, index, and network as parameters.
+ * Copies it to the clipboard and shows a brief confirmation.
+ */
+function shareDescriptor() {
+    const descriptor = document.getElementById('descriptor').value.trim();
+    if (!descriptor) {
+        showError('Please enter a descriptor before sharing.');
+        return;
+    }
+
+    const index = document.getElementById('index').value;
+    const network = document.getElementById('network').value;
+
+    const url = new URL(window.location.href.split('?')[0]);
+    url.searchParams.set('desc', descriptor);
+    if (index && index !== '0') {
+        url.searchParams.set('index', index);
+    }
+    if (network && network !== 'bitcoin') {
+        url.searchParams.set('network', network);
+    }
+
+    const shareUrl = url.toString();
+
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        const btn = document.getElementById('share-btn');
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied! ✓';
+        btn.classList.add('share-btn-copied');
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.classList.remove('share-btn-copied');
+        }, 2000);
+    }).catch(() => {
+        // Fallback: select a prompt with the URL
+        prompt('Copy this shareable URL:', shareUrl);
+    });
 }
 
 // Allow Ctrl+Enter to analyze

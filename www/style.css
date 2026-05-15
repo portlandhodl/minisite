@@ -163,6 +163,24 @@ button:disabled {
     cursor: not-allowed;
 }
 
+/* === Share Button === */
+.share-btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 0.75rem 1.5rem;
+}
+
+.share-btn:hover {
+    background: rgba(88, 166, 255, 0.1);
+}
+
+.share-btn-copied {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+    background: rgba(63, 185, 80, 0.1);
+}
+
 /* === Loading === */
 .loading {
     text-align: center;
