@@ -427,6 +427,38 @@ button:disabled {
     color: var(--text-primary);
 }
 
+/* === Mempool Link === */
+.mempool-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: var(--sans-font);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    background: rgba(88, 166, 255, 0.1);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    margin-left: 0.5rem;
+    transition: background 0.2s, border-color 0.2s;
+    vertical-align: middle;
+}
+
+.mempool-link:hover {
+    background: rgba(88, 166, 255, 0.2);
+    border-color: var(--accent);
+    text-decoration: none;
+}
+
+.address-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
 /* === Footer === */
 footer {
     text-align: center;

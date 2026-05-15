@@ -181,12 +181,17 @@ function displayResults(result, originalDescriptor) {
 
             // Address
             if (analysis.address) {
+                const network = document.getElementById('network').value;
+                const mempoolUrl = getMempoolAddressUrl(analysis.address, network);
+                const mempoolLink = mempoolUrl
+                    ? `<a href="${mempoolUrl}" target="_blank" rel="noopener noreferrer" class="mempool-link" title="View on mempool.space">🔍 mempool.space</a>`
+                    : '';
                 html += `
                     <div style="margin-top: 1rem;">
                         <h2>📫 Address</h2>
                         <div class="info-item">
                             <span class="info-label">Derived Address</span>
-                            <span class="info-value" style="font-size: 0.9rem;">${escapeHtml(analysis.address)}</span>
+                            <span class="info-value address-row" style="font-size: 0.9rem;">${escapeHtml(analysis.address)} ${mempoolLink}</span>
                         </div>
                     </div>`;
             }
@@ -288,6 +293,26 @@ function shareDescriptor() {
         // Fallback: select a prompt with the URL
         prompt('Copy this shareable URL:', shareUrl);
     });
+}
+
+/**
+ * Get the mempool.space URL for an address, respecting the selected network.
+ * Returns null for regtest (not available on mempool.space).
+ */
+function getMempoolAddressUrl(address, network) {
+    if (!address) return null;
+    switch (network) {
+        case 'bitcoin':
+            return `https://mempool.space/address/${address}`;
+        case 'testnet':
+            return `https://mempool.space/testnet/address/${address}`;
+        case 'signet':
+            return `https://mempool.space/signet/address/${address}`;
+        case 'regtest':
+            return null; // regtest is not on mempool.space
+        default:
+            return `https://mempool.space/address/${address}`;
+    }
 }
 
 // Allow Ctrl+Enter to analyze
