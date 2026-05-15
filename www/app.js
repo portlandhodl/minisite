@@ -8,6 +8,9 @@ async function initWasm() {
         wasmReady = true;
         document.getElementById('analyze-btn').disabled = false;
         console.log('WASM initialized successfully');
+
+        // Check for URL parameters and auto-load
+        loadFromUrlParams();
     } catch (e) {
         console.error('Failed to initialize WASM:', e);
         showError('Failed to load WebAssembly module. Please refresh the page.');
@@ -19,6 +22,38 @@ initWasm();
 
 // Make analyzeDescriptor available globally for the onclick handler
 window.analyzeDescriptor = analyzeDescriptor;
+
+/**
+ * Read descriptor, index, and network from URL parameters.
+ * If a descriptor is present, populate the form and auto-analyze.
+ */
+function loadFromUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+
+    const desc = params.get('desc') || params.get('descriptor');
+    const index = params.get('index');
+    const network = params.get('network');
+
+    if (desc) {
+        document.getElementById('descriptor').value = desc;
+    }
+    if (index !== null && index !== '') {
+        document.getElementById('index').value = index;
+    }
+    if (network) {
+        const networkSelect = document.getElementById('network');
+        // Only set if it's a valid option
+        const validNetworks = ['bitcoin', 'testnet', 'signet', 'regtest'];
+        if (validNetworks.includes(network)) {
+            networkSelect.value = network;
+        }
+    }
+
+    // Auto-analyze if a descriptor was provided
+    if (desc) {
+        analyzeDescriptor();
+    }
+}
 
 function analyzeDescriptor() {
     if (!wasmReady) {
