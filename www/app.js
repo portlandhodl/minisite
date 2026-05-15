@@ -223,6 +223,36 @@ function displayResults(result, originalDescriptor) {
             card.innerHTML = html;
             pathResultsEl.appendChild(card);
         });
+
+        // Add Address Explorer section after all path results
+        const descriptor = document.getElementById('descriptor').value.trim();
+        const network = document.getElementById('network').value;
+        const currentIndex = parseInt(document.getElementById('index').value) || 0;
+        if (network !== 'regtest') {
+            const explorerCard = document.createElement('section');
+            explorerCard.className = 'result-card';
+            explorerCard.id = 'address-explorer';
+
+            let explorerHtml = '<h2>🗺️ Address Explorer</h2>';
+            explorerHtml += '<p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.75rem;">Browse derived addresses on mempool.space. Click any address to view it on-chain.</p>';
+            explorerHtml += '<div class="address-explorer-controls">';
+            explorerHtml += `<button class="explorer-nav-btn" id="explorer-prev" onclick="navigateExplorer(-10)">← Prev 10</button>`;
+            explorerHtml += `<span class="explorer-range" id="explorer-range"></span>`;
+            explorerHtml += `<button class="explorer-nav-btn" id="explorer-next" onclick="navigateExplorer(10)">Next 10 →</button>`;
+            explorerHtml += '</div>';
+            explorerHtml += '<div id="address-explorer-list" class="address-explorer-list"></div>';
+
+            explorerCard.innerHTML = explorerHtml;
+            pathResultsEl.appendChild(explorerCard);
+
+            // Store the descriptor for the explorer to use
+            window._explorerDescriptor = descriptor;
+            window._explorerNetwork = network;
+            window._explorerStart = Math.max(0, currentIndex - 5);
+
+            // Render the initial batch
+            renderExplorerAddresses(window._explorerStart);
+        }
     }
 }
 
@@ -314,6 +344,74 @@ function getMempoolAddressUrl(address, network) {
             return `https://mempool.space/address/${address}`;
     }
 }
+
+/**
+ * Render a batch of derived addresses in the Address Explorer.
+ * Derives addresses at indices [startIndex .. startIndex+9] using the WASM analyzer.
+ */
+function renderExplorerAddresses(startIndex) {
+    const listEl = document.getElementById('address-explorer-list');
+    const rangeEl = document.getElementById('explorer-range');
+    const prevBtn = document.getElementById('explorer-prev');
+    if (!listEl) return;
+
+    const descriptor = window._explorerDescriptor;
+    const network = window._explorerNetwork;
+    const count = 10;
+    const endIndex = startIndex + count - 1;
+
+    rangeEl.textContent = `Indices ${startIndex} – ${endIndex}`;
+    prevBtn.disabled = startIndex === 0;
+
+    let html = '<table class="explorer-table">';
+    html += '<thead><tr><th>Index</th><th>Address</th><th>mempool.space</th></tr></thead>';
+    html += '<tbody>';
+
+    for (let i = startIndex; i <= endIndex; i++) {
+        try {
+            const resultJson = analyze_descriptor(descriptor, i, network);
+            const result = JSON.parse(resultJson);
+
+            // Get the first path's address (receive path)
+            let address = null;
+            if (result.paths && result.paths.length > 0) {
+                address = result.paths[0].analysis.address;
+            }
+
+            if (address) {
+                const mempoolUrl = getMempoolAddressUrl(address, network);
+                const currentIdx = parseInt(document.getElementById('index').value) || 0;
+                const isCurrentIndex = i === currentIdx;
+                const rowClass = isCurrentIndex ? 'explorer-row-current' : '';
+                html += `<tr class="${rowClass}">
+                    <td>${i}</td>
+                    <td class="explorer-address">${escapeHtml(address)}</td>
+                    <td>${mempoolUrl ? `<a href="${mempoolUrl}" target="_blank" rel="noopener noreferrer" class="mempool-link">🔍 View</a>` : '—'}</td>
+                </tr>`;
+            } else {
+                html += `<tr><td>${i}</td><td style="color: var(--text-muted);">Could not derive</td><td>—</td></tr>`;
+            }
+        } catch (e) {
+            html += `<tr><td>${i}</td><td style="color: var(--accent-red);">Error</td><td>—</td></tr>`;
+        }
+    }
+
+    html += '</tbody></table>';
+    listEl.innerHTML = html;
+
+    window._explorerStart = startIndex;
+}
+
+/**
+ * Navigate the Address Explorer forward or backward.
+ */
+function navigateExplorer(delta) {
+    const newStart = Math.max(0, window._explorerStart + delta);
+    renderExplorerAddresses(newStart);
+}
+
+// Make explorer functions available globally
+window.navigateExplorer = navigateExplorer;
 
 // Allow Ctrl+Enter to analyze
 document.getElementById('descriptor').addEventListener('keydown', (e) => {

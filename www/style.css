@@ -459,6 +459,91 @@ button:disabled {
     gap: 0.3rem;
 }
 
+/* === Address Explorer === */
+.address-explorer-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.explorer-nav-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.explorer-nav-btn:hover:not(:disabled) {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.explorer-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.explorer-range {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    min-width: 120px;
+    text-align: center;
+}
+
+.explorer-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.explorer-table th {
+    text-align: left;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+}
+
+.explorer-table td {
+    font-family: var(--mono-font);
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+    color: var(--text-primary);
+}
+
+.explorer-table tr:last-child td {
+    border-bottom: none;
+}
+
+.explorer-table tr:hover td {
+    background: rgba(88, 166, 255, 0.04);
+}
+
+.explorer-row-current td {
+    background: rgba(88, 166, 255, 0.08);
+    border-left: 3px solid var(--accent);
+}
+
+.explorer-address {
+    word-break: break-all;
+    max-width: 400px;
+}
+
+.address-explorer-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
 /* === Footer === */
 footer {
     text-align: center;
