@@ -51,6 +51,21 @@ header {
     border-bottom: 1px solid var(--border-color);
 }
 
+.header-logo {
+    margin-bottom: 0.75rem;
+}
+
+.bitcoin-logo {
+    width: 56px;
+    height: 56px;
+    filter: drop-shadow(0 0 12px rgba(247, 147, 26, 0.4));
+    transition: transform 0.3s ease;
+}
+
+.bitcoin-logo:hover {
+    transform: scale(1.1) rotate(5deg);
+}
+
 header h1 {
     font-size: 1.8rem;
     font-weight: 600;
