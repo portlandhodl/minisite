@@ -11,6 +11,7 @@ A client-side Bitcoin miniscript descriptor analyzer powered by WebAssembly. All
 - **Spending policy** — readable breakdown of AND/OR/threshold spending conditions
 - **Script inspection** — view the raw script hex and ASM
 - **Address generation** — derive addresses for any network (mainnet, testnet, signet, regtest)
+- **CSV export** — export derivation path, address, and script type for a range of indices (multipath-aware)
 - **Checksum validation** — verify descriptor checksums
 
 ## Tech Stack

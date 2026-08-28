@@ -3,6 +3,12 @@
 
 export function analyze_descriptor(descriptor: string, index: number, network_str: string): string;
 
+/**
+ * Derive addresses for indices [start, start + count) across all paths of a
+ * (possibly multipath) descriptor. Returns a JSON ExportResult.
+ */
+export function export_addresses(descriptor: string, start: number, count: number, network_str: string): string;
+
 export function init(): void;
 
 /**
@@ -15,6 +21,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly analyze_descriptor: (a: number, b: number, c: number, d: number, e: number) => [number, number];
+    readonly export_addresses: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
     readonly init: () => void;
     readonly validate_checksum: (a: number, b: number) => [number, number];
     readonly rustsecp256k1_v0_10_0_context_create: (a: number) => number;

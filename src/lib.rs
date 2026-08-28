@@ -675,6 +675,109 @@ pub fn analyze_descriptor(descriptor: &str, index: u32, network_str: &str) -> St
     })
 }
 
+#[derive(Serialize)]
+pub struct ExportedAddress {
+    pub index: u32,
+    pub path: String,
+    pub derivation_path: String,
+    pub address: String,
+    pub script_type: String,
+}
+
+#[derive(Serialize)]
+pub struct ExportResult {
+    pub valid: bool,
+    pub error: Option<String>,
+    pub rows: Vec<ExportedAddress>,
+}
+
+/// Derive addresses for indices [start, start + count) across all paths of a
+/// (possibly multipath) descriptor. Returns a JSON ExportResult.
+#[wasm_bindgen]
+pub fn export_addresses(descriptor: &str, start: u32, count: u32, network_str: &str) -> String {
+    let network = match network_str {
+        "testnet" => Network::Testnet,
+        "signet" => Network::Signet,
+        "regtest" => Network::Regtest,
+        _ => Network::Bitcoin,
+    };
+
+    let desc_str = descriptor.trim();
+    let paths = expand_multipath(desc_str);
+    let multipath = paths.len() > 1;
+
+    let mut rows: Vec<ExportedAddress> = Vec::new();
+
+    for (label, path_desc) in &paths {
+        // Fail fast if this path's descriptor does not parse
+        if let Err(e) = Descriptor::<DescriptorPublicKey>::from_str(path_desc) {
+            return serde_json::to_string(&ExportResult {
+                valid: false,
+                error: Some(format!("Parse error ({}): {}", label, e)),
+                rows: vec![],
+            })
+            .unwrap_or_else(|e| format!(r#"{{"valid":false,"error":"Serialization error: {}","rows":[]}}"#, e));
+        }
+
+        for offset in 0..count {
+            let index = start.saturating_add(offset);
+            let analysis = derive_single_descriptor(path_desc, index, network, label);
+
+            if !analysis.valid || analysis.address.is_none() {
+                return serde_json::to_string(&ExportResult {
+                    valid: false,
+                    error: Some(format!(
+                        "Failed to derive index {} ({}){}",
+                        index,
+                        label,
+                        analysis
+                            .error
+                            .map(|e| format!(": {}", e))
+                            .unwrap_or_default()
+                    )),
+                    rows: vec![],
+                })
+                .unwrap_or_else(|e| format!(r#"{{"valid":false,"error":"Serialization error: {}","rows":[]}}"#, e));
+            }
+
+            // Build combined derivation paths: origin path + child path per key,
+            // e.g. m/48h/0h/203h/2h/0/5. Multiple keys are joined with " | ".
+            let derivation_path = analysis
+                .keys
+                .iter()
+                .map(|k| {
+                    let child = k
+                        .full_derivation
+                        .splitn(2, '/')
+                        .nth(1)
+                        .unwrap_or("");
+                    if child.is_empty() {
+                        k.derivation_path.clone()
+                    } else {
+                        format!("{}/{}", k.derivation_path, child)
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(" | ");
+
+            rows.push(ExportedAddress {
+                index,
+                path: if multipath { label.clone() } else { String::new() },
+                derivation_path,
+                address: analysis.address.unwrap_or_default(),
+                script_type: analysis.descriptor_type.unwrap_or_default(),
+            });
+        }
+    }
+
+    serde_json::to_string(&ExportResult {
+        valid: true,
+        error: None,
+        rows,
+    })
+    .unwrap_or_else(|e| format!(r#"{{"valid":false,"error":"Serialization error: {}","rows":[]}}"#, e))
+}
+
 /// Validate a descriptor checksum
 #[wasm_bindgen]
 pub fn validate_checksum(descriptor: &str) -> String {
@@ -694,5 +797,47 @@ pub fn validate_checksum(descriptor: &str) -> String {
                 "message": format!("Invalid: {}", err_str)
             }).to_string()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_export_multipath() {
+        // wpkh multipath descriptor (testnet tpub)
+        let desc = "wpkh(xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8/<0;1>/*)";
+        let result = export_addresses(desc, 0, 3, "bitcoin");
+        let v: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert!(v["valid"].as_bool().unwrap(), "export failed: {}", result);
+        let rows = v["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 6); // 3 indices x 2 paths
+        assert_eq!(rows[0]["path"], "receive (path 0)");
+        assert_eq!(rows[3]["path"], "change (path 1)");
+        assert!(rows[0]["address"].as_str().unwrap().starts_with("bc1q"));
+        assert!(rows[0]["derivation_path"].as_str().unwrap().contains("/0/0"));
+        assert!(rows[3]["derivation_path"].as_str().unwrap().contains("/1/0"));
+        assert_eq!(rows[0]["script_type"], "Wpkh");
+        println!("{}", serde_json::to_string_pretty(&rows[0]).unwrap());
+    }
+
+    #[test]
+    fn test_export_single_path() {
+        let desc = "wpkh(xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8/0/*)";
+        let result = export_addresses(desc, 5, 2, "bitcoin");
+        let v: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert!(v["valid"].as_bool().unwrap(), "export failed: {}", result);
+        let rows = v["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0]["index"], 5);
+        assert_eq!(rows[0]["path"], "");
+    }
+
+    #[test]
+    fn test_export_invalid() {
+        let result = export_addresses("wpkh(invalid)", 0, 1, "bitcoin");
+        let v: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert!(!v["valid"].as_bool().unwrap());
     }
 }

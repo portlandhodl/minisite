@@ -2,6 +2,7 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const analyze_descriptor: (a: number, b: number, c: number, d: number, e: number) => [number, number];
+export const export_addresses: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
 export const init: () => void;
 export const validate_checksum: (a: number, b: number) => [number, number];
 export const rustsecp256k1_v0_10_0_context_create: (a: number) => number;

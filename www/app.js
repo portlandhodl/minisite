@@ -1,4 +1,4 @@
-import init, { analyze_descriptor, validate_checksum } from './pkg/miniscript_analyzer.js';
+import init, { analyze_descriptor, validate_checksum, export_addresses } from './pkg/miniscript_analyzer.js';
 
 let wasmReady = false;
 
@@ -23,6 +23,7 @@ initWasm();
 // Make functions available globally for the onclick handlers
 window.analyzeDescriptor = analyzeDescriptor;
 window.shareDescriptor = shareDescriptor;
+window.exportAddresses = exportAddresses;
 
 /**
  * Read descriptor, index, and network from URL parameters.
@@ -323,6 +324,124 @@ function shareDescriptor() {
         // Fallback: select a prompt with the URL
         prompt('Copy this shareable URL:', shareUrl);
     });
+}
+
+/**
+ * Export derived addresses to a CSV file.
+ * Prompts the user for the maximum derivation index, then derives addresses
+ * for indices [0 .. maxIndex] across all paths (multipath descriptors are
+ * expanded into receive/change paths automatically).
+ * CSV columns: index, path, derivation_path, address, script_type
+ */
+function exportAddresses() {
+    if (!wasmReady) {
+        showError('WebAssembly module is still loading. Please wait...');
+        return;
+    }
+
+    const descriptor = document.getElementById('descriptor').value.trim();
+    if (!descriptor) {
+        showError('Please enter a descriptor before exporting.');
+        return;
+    }
+
+    // Prompt for the maximum derivation index
+    const isMultipath = descriptor.includes('<') && descriptor.includes(';');
+    const pathNote = isMultipath ? ' (receive and change paths will both be exported)' : '';
+    const input = prompt(
+        `Enter the maximum derivation index to export${pathNote}.\n` +
+        `Addresses will be derived from index 0 up to and including this index:`,
+        '99'
+    );
+    if (input === null) {
+        return; // User cancelled
+    }
+
+    const maxIndex = parseInt(input.trim(), 10);
+    if (isNaN(maxIndex) || maxIndex < 0 || maxIndex > 2147483647) {
+        showError('Invalid maximum index. Please enter a number between 0 and 2147483647.');
+        return;
+    }
+
+    const count = maxIndex + 1;
+    const totalDerivations = count * (isMultipath ? 2 : 1);
+    if (totalDerivations > 10000) {
+        if (!confirm(`This will derive ${totalDerivations} addresses and may take a while. Continue?`)) {
+            return;
+        }
+    }
+
+    const network = document.getElementById('network').value;
+
+    hideError();
+    showLoading();
+
+    // Use setTimeout to allow UI to update before heavy computation
+    setTimeout(() => {
+        try {
+            const resultJson = export_addresses(descriptor, 0, count, network);
+            const result = JSON.parse(resultJson);
+
+            hideLoading();
+
+            if (!result.valid) {
+                showError(result.error || 'Export failed.');
+                return;
+            }
+
+            if (!result.rows || result.rows.length === 0) {
+                showError('No addresses were derived.');
+                return;
+            }
+
+            const csv = buildAddressCsv(result.rows);
+            downloadCsv(csv, `addresses_${network}_0-${maxIndex}.csv`);
+        } catch (e) {
+            hideLoading();
+            showError('Export failed: ' + e.message);
+            console.error(e);
+        }
+    }, 50);
+}
+
+/**
+ * Build a CSV string from exported address rows.
+ */
+function buildAddressCsv(rows) {
+    const escapeCsv = (value) => {
+        const s = String(value == null ? '' : value);
+        if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+    };
+
+    const lines = ['index,path,derivation_path,address,script_type'];
+    rows.forEach((row) => {
+        lines.push([
+            row.index,
+            escapeCsv(row.path),
+            escapeCsv(row.derivation_path),
+            escapeCsv(row.address),
+            escapeCsv(row.script_type),
+        ].join(','));
+    });
+    return lines.join('\n');
+}
+
+/**
+ * Trigger a browser download of a CSV string.
+ */
+function downloadCsv(csv, filename) {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 /**
