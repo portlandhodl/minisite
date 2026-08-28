@@ -740,9 +740,12 @@ pub fn export_addresses(descriptor: &str, start: u32, count: u32, network_str: &
                 .unwrap_or_else(|e| format!(r#"{{"valid":false,"error":"Serialization error: {}","rows":[]}}"#, e));
             }
 
-            // Build combined derivation paths: origin path + child path per key,
-            // e.g. m/48h/0h/203h/2h/0/5. Multiple keys are joined with " | ".
-            let derivation_path = analysis
+            // Build a single combined derivation path: origin path + child path,
+            // e.g. m/48h/0h/203h/2h/0/5. When all keys share the same path
+            // (common for multisig where every cosigner derives the same way),
+            // show it once instead of repeating it per key. Otherwise join
+            // unique paths with " | ".
+            let mut paths: Vec<String> = analysis
                 .keys
                 .iter()
                 .map(|k| {
@@ -757,8 +760,9 @@ pub fn export_addresses(descriptor: &str, start: u32, count: u32, network_str: &
                         format!("{}/{}", k.derivation_path, child)
                     }
                 })
-                .collect::<Vec<_>>()
-                .join(" | ");
+                .collect();
+            paths.dedup();
+            let derivation_path = paths.join(" | ");
 
             rows.push(ExportedAddress {
                 index,
