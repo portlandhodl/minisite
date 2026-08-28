@@ -150,6 +150,9 @@ select {
 
 .btn-group {
     flex: 0 0 auto;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
 }
 
 button {
@@ -598,6 +601,15 @@ footer a:hover {
 
     .form-row {
         flex-direction: column;
+    }
+
+    .btn-group {
+        align-self: stretch;
+    }
+
+    .btn-group button {
+        flex: 1;
+        padding: 0.75rem 0.5rem;
     }
 
     header h1 {
