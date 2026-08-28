@@ -331,7 +331,7 @@ function shareDescriptor() {
  * Prompts the user for the maximum derivation index, then derives addresses
  * for indices [0 .. maxIndex] across all paths (multipath descriptors are
  * expanded into receive/change paths automatically).
- * CSV columns: index, path, derivation_path, address, script_type
+ * CSV columns: index, path, address, script_type
  */
 function exportAddresses() {
     if (!wasmReady) {
@@ -416,12 +416,11 @@ function buildAddressCsv(rows) {
         return s;
     };
 
-    const lines = ['index,path,derivation_path,address,script_type'];
+    const lines = ['index,path,address,script_type'];
     rows.forEach((row) => {
         lines.push([
             row.index,
             escapeCsv(row.path),
-            escapeCsv(row.derivation_path),
             escapeCsv(row.address),
             escapeCsv(row.script_type),
         ].join(','));

@@ -679,7 +679,6 @@ pub fn analyze_descriptor(descriptor: &str, index: u32, network_str: &str) -> St
 pub struct ExportedAddress {
     pub index: u32,
     pub path: String,
-    pub derivation_path: String,
     pub address: String,
     pub script_type: String,
 }
@@ -740,34 +739,9 @@ pub fn export_addresses(descriptor: &str, start: u32, count: u32, network_str: &
                 .unwrap_or_else(|e| format!(r#"{{"valid":false,"error":"Serialization error: {}","rows":[]}}"#, e));
             }
 
-            // Build a single combined derivation path: origin path + child path,
-            // e.g. m/48h/0h/203h/2h/0/5. When all keys share the same path
-            // (common for multisig where every cosigner derives the same way),
-            // show it once instead of repeating it per key. Otherwise join
-            // unique paths with " | ".
-            let mut paths: Vec<String> = analysis
-                .keys
-                .iter()
-                .map(|k| {
-                    let child = k
-                        .full_derivation
-                        .splitn(2, '/')
-                        .nth(1)
-                        .unwrap_or("");
-                    if child.is_empty() {
-                        k.derivation_path.clone()
-                    } else {
-                        format!("{}/{}", k.derivation_path, child)
-                    }
-                })
-                .collect();
-            paths.dedup();
-            let derivation_path = paths.join(" | ");
-
             rows.push(ExportedAddress {
                 index,
                 path: if multipath { label.clone() } else { String::new() },
-                derivation_path,
                 address: analysis.address.unwrap_or_default(),
                 script_type: analysis.descriptor_type.unwrap_or_default(),
             });
@@ -820,8 +794,6 @@ mod tests {
         assert_eq!(rows[0]["path"], "receive (path 0)");
         assert_eq!(rows[3]["path"], "change (path 1)");
         assert!(rows[0]["address"].as_str().unwrap().starts_with("bc1q"));
-        assert!(rows[0]["derivation_path"].as_str().unwrap().contains("/0/0"));
-        assert!(rows[3]["derivation_path"].as_str().unwrap().contains("/1/0"));
         assert_eq!(rows[0]["script_type"], "Wpkh");
         println!("{}", serde_json::to_string_pretty(&rows[0]).unwrap());
     }
